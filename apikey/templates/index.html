@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音檔轉文字</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2a3849;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin-top: 50px;
+        }
+
+        .card {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 顯示轉錄結果區域樣式 */
+        .transcription-section {
+            padding-left: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+            border-left: 2px solid #ccc;
+            /* 增加分隔線 */
+        }
+
+        .transcription-section pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+
+        .custom-file-label::after {
+            content: "瀏覽";
+        }
+
+        .back-button {
+            background-color: #d2d2d3;
+            color: rgb(0, 0, 0);
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            display: block;
+            margin: 0 auto;
+            /* 讓按鈕居中 */
+            width: 150px;
+            /* 設定按鈕寬度 */
+            margin-top: 20px;
+            /* 增加按鈕與卡片的間距 */
+        }
+
+        .back-button:hover {
+            background-color: #d2d2d3;
+            transform: scale(1.1);
+        }
+
+        .back-button:focus {
+            outline: none;
+        }
+
+        .transcription-box {
+            margin-top: 20px;
+        }
+
+        .transcription-box pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .download-btn {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <!-- 左邊表單卡片 -->
+            <div class="col-md-6">
+                <div class="card">
+                    <h1 class="mb-4 text-center">音檔轉文字</h1>
+
+                    <!-- 顯示錯誤訊息 -->
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {% for message in messages %}
+                            <li>{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+
+                    <form action="/voicetotext" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="audio_file">選擇音檔（mp3, wav, m4a）：</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="audio_file" name="audio_file" required
+                                    accept=".mp3, .m4a, .wav">
+                                <label class="custom-file-label" for="audio_file">選擇檔案...</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language">選擇語言：</label>
+                            <select class="form-control" id="language" name="language">
+                                <option value="en">英文</option>
+                                <option value="zh">中文</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-check">
+
+                            <label>
+                                <input type="checkbox" name="translate">
+                                翻譯為英文
+                                <small style="color: gray;">（僅適用於非英文音訊）</small>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model">選擇模型：</label>
+                            <select class="form-control" id="model" name="model">
+                                <option value="base">Base 模型</option>
+                                <option value="small">Small 模型</option>
+                                <option value="medium">Medium 模型</option>
+                                <option value="large">Large 模型</option>
+                            </select>
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="output_format">選擇輸出格式( TXT,SRT,TSV )：</label>
+                            <select class="form-control" id="output_format" name="output_format" required>
+                                <option value="txt">TXT</option>
+                                <option value="srt">SRT</option>
+                                <option value="tsv">TSV</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">轉錄音檔</button>
+
+                        <hr>
+                        <button class="back-button" onclick="window.history.back()">←回上一頁</button>
+                    </form>
+                </div>
+
+            </div>
+            <div class="col-md-6">
+                <div class="card mt-4 shadow" style="min-height: 400px;">
+                    <div class="card-body d-flex flex-column p-3">
+                        <h2 class="card-title">轉錄結果</h2>
+
+                        {% if error %}
+                        <p class="text-danger">{{ error }}</p>
+                        {% endif %}
+
+                        {% if transcript %}
+                        <textarea class="form-control" readonly
+                            style="resize: none; height: 300px; overflow-y: auto;">{{ transcript }}</textarea>
+
+
+                        {% if transcription_time %}
+                        <p class="mt-3"><strong>轉錄時間:</strong> {{ transcription_time | round(2) }} 秒</p>
+                        {% endif %}
+                        <hr>
+                        {% if dify_reply %}
+                        <h4>Dify 回覆內容：</h4>
+                        <p>{{ dify_reply }}</p>
+                        <div id="dify-data" data-dify="{{ dify_reply | tojson }}"></div>
+                        <button class="btn btn-success w-100" onclick="downloadDifyReply()">下載 Dify 回覆</button>
+                        {% endif %}
+                        <br>
+
+                        {% if output_file %}
+                        <button onclick="downloadFile()" class="btn btn-success w-100">下載轉錄檔案</button>
+                        <div id="download-status" style="display: none; color: green; margin-top: 10px;">
+                            正在產生檔案，請稍候...
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <p class="text-muted">尚無轉錄結果，請上傳音檔進行轉錄。</p>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+
+            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+
+
+            <script>
+                console.log('{{ dify_reply }}');
+                document.querySelector('#audio_file').addEventListener('change', function (event) {
+                    var fileName = event.target.files[0].name;
+                    var label = event.target.nextElementSibling;
+                    label.textContent = fileName;
+                });
+                function downloadFile() {
+                    var statusDiv = document.getElementById('download-status');
+                    statusDiv.style.display = 'block';  // 顯示提示
+                    var outputFile = "{{ output_file }}";
+                    var link = document.createElement('a');
+                    link.href = "/download/" + outputFile;
+                    link.download = outputFile.split('/').pop();  // 保留原始檔名
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        statusDiv.style.display = 'none';  // 隱藏提示
+                    }, 2000);  // 等 2 秒讓下載完成
+                }
+                function downloadDifyReply() {
+                    var statusDiv = document.getElementById('download-status');
+                    statusDiv.style.display = 'block';  // 顯示提示文字
+
+                    var difyReplyContent = document.getElementById('dify-data').dataset.dify;
+
+                    try {
+                        // 如果是 JSON 格式，先解析
+                        var parsedContent = JSON.parse(difyReplyContent);
+                    } catch (e) {
+                        // 如果無法解析，直接使用原始字串
+                        var parsedContent = difyReplyContent;
+                    }
+
+                    // 確保文本中的特殊字符被正確處理
+                    var encodedContent = encodeURIComponent(parsedContent);
+
+                    // 創建 Blob 物件並設置為文字檔案
+                    var blob = new Blob([encodedContent], { type: 'text/plain' });
+                    var link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'dify_reply.txt';
+
+                    // 模擬點擊觸發下載
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // 隱藏提示文字
+                    setTimeout(function () {
+                        statusDiv.style.display = 'none';  // 隱藏提示
+                    }, 1000);  // 1秒後隱藏提示
+                }
+
+            </script>
+</body>
+
+</html>

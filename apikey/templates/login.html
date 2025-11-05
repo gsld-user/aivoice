@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入頁面</title>
+    <style>
+        /* 將頁面內容居中 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 使頁面高度充滿整個視窗 */
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* 設置表單區塊 */
+        .container {
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 40px;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        /* 設置表單的輸入框與按鈕 */
+        input[type="text"], input[type="password"], button {
+            width: 90%; /* 設定寬度為100%，讓元素佔滿整個容器 */
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* 顯示 Flash 訊息 */
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        ul li {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>登入</h2>
+
+        <!-- 顯示 Flash 訊息 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for category, message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <label for="username">使用者名稱:</label>
+            <input type="text" id="username" name="username" required><br><br>
+
+            <label for="password">密碼:</label>
+            <input type="password" id="password" name="password" required><br><br>
+
+            <button type="submit">登入</button>
+        </form>
+
+        <p>尚未註冊？<a href="/register">註冊帳號</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會議記錄轉文字</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2a3849;
+        }
+        .container {
+            max-width: 1200px;
+            margin-top: 50px;
+        }
+
+        .card {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .transcription-section {
+            padding-left: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+            border-left: 2px solid #ccc;
+            /* 增加分隔線 */
+        }
+
+        .transcription-section pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .custom-file-label::after {
+            content: "瀏覽";
+        }
+
+        .back-button {
+            background-color: #d2d2d3;
+            color: rgb(0, 0, 0);
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            display: block;
+            margin: 0 auto;
+            width: 150px;
+            margin-top: 20px;
+        }
+
+        .back-button:hover {
+            background-color: #d2d2d3;
+            transform: scale(1.1);
+        }
+
+        .back-button:focus {
+            outline: none;
+        }
+
+        .navbar {
+            margin-bottom: 20px;
+            background-color: #3d3d3d !important;
+        }
+
+        .navbar-light .navbar-nav .nav-link {
+            color: white !important;
+        }
+
+        .navbar-brand {
+            color: #ffffff !important;
+        }
+
+        .nav-item .dropdown-menu {
+            left: -30px;
+            right: auto;
+        }
+
+        .navbar .navbar-nav {
+            margin-left: auto;
+        }
+
+        .navbar .navbar-nav .nav-item:last-child {
+            margin-left: 15px;
+        }
+
+        .navbar-nav {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .account-name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .nav-link.dropdown-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .table th,
+        .table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .table-striped tbody tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        .table-bordered {
+            border: 1px solid #ddd;
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #ddd;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <!-- 左邊表單卡片 -->
+            <div class="col-md-6">
+                <div class="card">
+                    <h1 class="mb-4 text-center">會議記錄轉文字</h1>
+
+                    <!-- 顯示錯誤訊息 -->
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {% for message in messages %}
+                            <li>{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="audio_file">選擇音檔（mp3, wav, m4a）：</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="audio_file" name="audio_file" required
+                                    accept=".mp3, .m4a, .wav">
+                                <label class="custom-file-label" for="audio_file">選擇檔案...</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language">選擇語言：</label>
+                            <select class="form-control" id="language" name="language">
+                                <option value="en">英文</option>
+                                <option value="zh">中文</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model">選擇模型：</label>
+                            <select class="form-control" id="model" name="model">
+                                <option value="base">Base 模型</option>
+                                <option value="small">Small 模型</option>
+                                <option value="medium">Medium 模型</option>
+                                <option value="large">Large 模型</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">轉錄音檔</button>
+                        <hr>
+                        <button class="back-button" onclick="window.history.back()">←回上一頁</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 右邊轉錄結果卡片 -->
+            <div class="col-md-6">
+                <div class="card mt-4 shadow" style="min-height: 400px;">
+                    <div class="card-body d-flex flex-column p-3">
+                        <h2 class="card-title">轉錄結果</h2>
+
+                        {% if transcription %}
+                        <div class="table-responsive">
+                            {{ transcription|safe }}
+                            {% else %}
+                            <p class="text-muted">尚無轉錄結果，請上傳音檔進行轉錄。</p>
+                            {% endif %}
+
+                            {% if transcription_time %}
+                            <p>轉錄所花費的時間：{{ transcription_time }} 秒</p>
+                            {% endif %}
+
+                            {% if meeting_summary %}
+                            <div class="card mt-4">
+                                <div class="card-header"><strong>📋 會議摘要</strong></div>
+                                <div class="card-body">
+                                    <pre style="white-space: pre-wrap;">{{ meeting_summary }}</pre>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if todo_list %}
+                            <div class="card mt-4">
+                                <div class="card-header"><strong>📋 代辦事項</strong></div>
+                                <div class="card-body">
+                                    <pre style="white-space: pre-wrap;">{{ todo_list }}</pre>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-center">
+                            {% if output_file %}
+                            <a href="{{ url_for('download_meeting', filename=output_file) }}"
+                                class="btn btn-success">下載轉錄檔案</a>
+                            {% endif %}
+                            {% if output_file %}
+                            <a href="{{ url_for('download_meeting', filename=output_file) }}" class="btn btn-success">下載
+                                TXT</a>
+                            <a href="{{ url_for('download_meeting_word', filename=output_file) }}"
+                                class="btn btn-primary">下載 Word</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+
+            <script>
+                document.querySelector('#audio_file').addEventListener('change', function (event) {
+                    var fileName = event.target.files[0].name;
+                    var label = event.target.nextElementSibling;
+                    label.textContent = fileName;
+
+                    // 顯示檔案類型
+                    var fileType = event.target.files[0].type;
+                    console.log('Selected file type:', fileType);
+                });
+                showDownloadButton("transcribed_text");
+            </script>
+</body>
+
+</html>
