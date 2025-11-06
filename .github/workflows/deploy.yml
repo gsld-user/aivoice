@@ -67,6 +67,7 @@ jobs:
       contents: none
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 15
     environment:
       name: 'Development'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -85,4 +86,5 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.aivoice }}
           package: .
+          enable-oryx-build: true
 
