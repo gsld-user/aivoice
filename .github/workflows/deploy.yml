@@ -86,5 +86,5 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.aivoice }}
           package: .
-          enable-oryx-build: true
+          startup-command: gunicorn apikey.app:app --bind 0.0.0.0:8080
 
