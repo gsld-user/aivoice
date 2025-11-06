@@ -1,7 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy container app to Azure Web App - aivoicew
+name: Build and deploy to Azure Web App - aivoicew
 
 on:
   push:
@@ -13,25 +10,28 @@ jobs:
   build-and-deploy:
     runs-on: windows-latest
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
+      # 1️⃣ 先把 repo clone 下來
       - uses: actions/checkout@v4
 
-      - name: Docker login to container registry
-        uses: docker/login-action@v2
+      # 2️⃣ (選填) 安裝依賴或 build 專案
+      # 根據你的專案類型啟用
+      # 範例：Node.js 專案
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          registry: mcr.microsoft.com/
-          username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_61A1FA17DE104297BFE21DC1B107F588 }}
-          password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_5B4FB99AE1AD42D49DFFCB41CF8A8B6A }}
-          
+          node-version: '18'
 
-      - name: Build and Push container to registry
-        run: |
-          docker build -t mcr.microsoft.com/azure-app-service/windows/parkingpage:${{ github.sha }} .
-          docker push mcr.microsoft.com/azure-app-service/windows/parkingpage:${{ github.sha }}
-      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build  # 如果你有 build 指令
+
+      # 3️⃣ 登入 Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -39,11 +39,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_66FBE4D8C707435A878E44FF8C4C123E }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3D2464250EDB4410904203E366CC773B }}
 
-      - name: Deploy container to Azure App Service
+      # 4️⃣ 部署到 Azure Web App
+      - name: Deploy to Azure Web App
         uses: Azure/webapps-deploy@v2
         with:
           app-name: 'aivoicew'
           slot-name: 'Production'
-          images: 'mcr.microsoft.com/azure-app-service/windows/parkingpage:${{ github.sha }}'
-          
-
+          package: '.'   # 將整個 repo 根目錄部署
