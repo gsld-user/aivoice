@@ -86,5 +86,5 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.aivoice }}
           package: .
-          startup-command: gunicorn apikey.app:app --bind 0.0.0.0:8080
+          gunicorn apikey.app:app --bind 0.0.0.0:8000
 
