@@ -1,4 +1,4 @@
-name: Build and deploy to Azure Web App - aivoicew
+name: Deploy to Azure Web App - aivoicew
 
 on:
   push:
@@ -7,31 +7,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: windows-latest
     permissions:
       id-token: write
       contents: read
 
     steps:
-      # 1️⃣ 先把 repo clone 下來
+      # 1️⃣ Checkout repo
       - uses: actions/checkout@v4
 
-      # 2️⃣ (選填) 安裝依賴或 build 專案
-      # 根據你的專案類型啟用
-      # 範例：Node.js 專案
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build project
-        run: npm run build  # 如果你有 build 指令
-
-      # 3️⃣ 登入 Azure
+      # 2️⃣ Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -39,10 +25,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_66FBE4D8C707435A878E44FF8C4C123E }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3D2464250EDB4410904203E366CC773B }}
 
-      # 4️⃣ 部署到 Azure Web App
+      # 3️⃣ Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: Azure/webapps-deploy@v2
         with:
           app-name: 'aivoicew'
           slot-name: 'Production'
-          package: '.'   # 將整個 repo 根目錄部署
+          package: '.'  # Deploy entire repo root directory
