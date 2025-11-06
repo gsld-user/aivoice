@@ -31,6 +31,12 @@ on:
 permissions:
   contents: read
 
+
+concurrency:
+  group: azure-deploy
+  cancel-in-progress: true
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
