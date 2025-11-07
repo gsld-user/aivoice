@@ -781,6 +781,5 @@ if __name__ == "__main__":
         os.makedirs(UPLOAD_FOLDER)
     if not os.path.exists(OUTPUT_FOLDER):
         os.makedirs(OUTPUT_FOLDER)
-    #app.run(host="0.0.0.0", port=8080, debug=True)
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, debug=True, host='0.0.0.0', port=port)
