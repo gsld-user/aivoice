@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>即時錄音轉文字</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <style>
+         body {
+            margin: 0;
+            padding: 0;
+            background-color: #2a3849;
+        }
+        .container {
+            max-width: 1200px;
+            margin-top: 50px;
+        }
+
+        .card {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-file-label::after {
+            content: "瀏覽";
+        }
+
+        .back-button {
+            background-color: #d2d2d3;
+            color: rgb(0, 0, 0);
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            display: block;
+            margin: 0 auto;
+            /* 讓按鈕居中 */
+            width: 150px;
+            /* 設定按鈕寬度 */
+            margin-top: 20px;
+            /* 增加按鈕與卡片的間距 */
+        }
+
+        .back-button:hover {
+            background-color: #d2d2d3;
+            transform: scale(1.1);
+        }
+
+        .back-button:focus {
+            outline: none;
+        }
+
+        /* 導覽列樣式 */
+        .navbar {
+            margin-bottom: 20px;
+            background-color: #3d3d3d !important;
+        }
+
+        .navbar-light .navbar-nav .nav-link {
+            color: white !important;
+            /* 使用 !important 強制應用文字顏色 */
+        }
+
+        .navbar-brand {
+            color: #ffffff !important;
+        }
+
+        .nav-item .dropdown-menu {
+            left: -30px;
+            /* 調整這個數值來微調水平位置 */
+            right: auto;
+        }
+
+        /* 導航項目右側顯示帳戶名稱 */
+        .navbar .navbar-nav {
+            margin-left: auto;
+            /* 使選單右對齊 */
+        }
+
+        .navbar .navbar-nav .nav-item:last-child {
+            margin-left: 15px;
+            /* 為帳戶名稱與下拉選單增加間距 */
+        }
+
+        .navbar-nav {
+            display: flex;
+            justify-content: flex-end;
+            /* 讓選單項目靠右對齊 */
+        }
+
+        .account-name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .nav-link.dropdown-toggle {
+            cursor: pointer;
+            user-select: none;
+            /* 禁止選取文字 */
+        }
+        .transcription-section {
+            padding-left: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+            border-left: 2px solid #ccc;
+            /* 增加分隔線 */
+        }
+
+        .transcription-section pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between">
+            <!-- 左邊的錄音區塊 -->
+            <div class="col-md-6">
+                <div class="card">
+                    <h2 class="mb-4 text-center">錄製音訊</h2>
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {% for message in messages %}
+                            <li>{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+
+                    <hr>
+                    <button id="record-btn" class="btn btn-danger btn-block">開始錄音</button>
+                    <button id="stop-btn" class="btn btn-secondary btn-block" disabled>停止錄音</button>
+                    <hr>
+                    <!-- 語言選擇 -->
+                    <div class="form-group">
+                        <label for="language">選擇語言</label>
+                        <select id="language" class="form-control">
+                            <option value="zh">中文</option>
+                            <option value="en">英文</option>
+                        </select>
+                    </div>
+                    <p></p>
+                    <div style="text-align: center;">
+                        <audio id="audio-preview" controls hidden></audio>
+                        <form id="upload-form" method="POST" action="/transcribe" enctype="multipart/form-data" hidden>
+                            <input type="hidden" name="language" id="language-input" value="zh">
+                            <input type="hidden" name="model" value="base">
+                            <input type="hidden" name="output_format" value="txt">
+                            <input type="file" name="audio_file" id="recorded-audio-file">
+                        </form>
+                    </div>
+                    <p></p>
+                    <button id="transcribe-btn" class="btn btn-primary btn-block" disabled>開始轉錄</button>
+                    <hr>
+                    <button class="back-button" onclick="window.history.back()">←回上一頁</button>
+                    <p></p>
+
+
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mt-4 shadow" style="min-height: 400px;">
+                    <div class="card-body d-flex flex-column p-3">
+                        <h2 class="card-title">轉錄結果</h2>
+                
+                    <div id="transcription-result" style="min-height: 200px;">
+                        <p>請開始錄音並進行轉錄。</p>
+                        <p>{{ transcription }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+
+
+    <script>
+        function downloadAudio(blob, filename = 'recorded_audio.webm') {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const recordBtn = document.getElementById('record-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const transcribeBtn = document.getElementById('transcribe-btn');
+        const audioPreview = document.getElementById('audio-preview');
+        const uploadForm = document.getElementById('upload-form');
+        const languageSelect = document.getElementById('language');
+        const languageInput = document.getElementById('language-input');
+        const recordedAudioFile = document.getElementById('recorded-audio-file');
+
+        // 靜音偵測用變數
+        let audioContext, analyser, microphoneStream, silenceTimeout;
+
+        // 開始錄音
+        recordBtn.addEventListener('click', async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            audioChunks = [];
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                // 自動下載錄音檔
+                downloadAudio(audioBlob);
+
+                // 播放預覽
+                const audioURL = URL.createObjectURL(audioBlob);
+                audioPreview.src = audioURL;
+                audioPreview.hidden = false;
+
+                // 顯示轉錄按鈕
+                transcribeBtn.disabled = false;
+
+                // 放入表單
+                const audioFile = new File([audioBlob], 'recorded_audio.webm', {
+                    type: 'audio/webm'
+                });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(audioFile);
+                recordedAudioFile.files = dataTransfer.files;
+
+                // 停止靜音偵測
+                clearTimeout(silenceTimeout);
+                silenceTimeout = null;
+            };
+
+            mediaRecorder.start();
+            recordBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            setupSilenceDetection(stream); // 啟動靜音偵測
+        });
+
+        // 手動停止錄音
+        stopBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            clearTimeout(silenceTimeout);
+            silenceTimeout = null;
+        });
+
+        // 開始轉錄
+        transcribeBtn.addEventListener('click', () => {
+            languageInput.value = languageSelect.value;
+            uploadForm.submit();
+        });
+
+        // 靜音偵測邏輯
+        function setupSilenceDetection(stream) {
+            audioContext = new AudioContext();
+            analyser = audioContext.createAnalyser();
+            microphoneStream = audioContext.createMediaStreamSource(stream);
+            microphoneStream.connect(analyser);
+
+            const dataArray = new Uint8Array(analyser.fftSize);
+
+            function detectSilence() {
+                analyser.getByteTimeDomainData(dataArray);
+                const isSilent = dataArray.every(v => Math.abs(v - 128) < 5);
+
+                if (isSilent && !silenceTimeout) {
+                    silenceTimeout = setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                            mediaRecorder.stop();
+                            alert('偵測到靜音，錄音已自動停止');
+                        }
+                    }, 3000); // 持續靜音 3 秒觸發
+                } else if (!isSilent) {
+                    clearTimeout(silenceTimeout);
+                    silenceTimeout = null;
+                }
+
+                requestAnimationFrame(detectSilence);
+            }
+
+            detectSilence();
+        }
+    </script>
+
+</body>
+
+</html>
